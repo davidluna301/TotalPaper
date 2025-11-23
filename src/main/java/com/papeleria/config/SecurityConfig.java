@@ -1,4 +1,3 @@
-// config/SecurityConfig.java (actualizado)
 package com.papeleria.config;
 
 import org.springframework.context.annotation.Bean;
@@ -14,28 +13,10 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(csrf -> csrf.disable()) // Deshabilitar CSRF completamente
+            .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(authz -> authz
-                // Permitir acceso a todos los recursos estáticos y páginas
-                .requestMatchers("/", "/login", "/vendedor", "/admin", "/redirect-by-role").permitAll()
-                .requestMatchers("/css/**", "/js/**", "/images/**").permitAll()
-                .requestMatchers("/api/**").permitAll()
-                // Cualquier otra solicitud requiere autenticación
+                .requestMatchers("/**").permitAll()
                 .anyRequest().authenticated()
-            )
-            .formLogin(form -> form
-                .loginPage("/login")
-                .loginProcessingUrl("/login")
-                .defaultSuccessUrl("/redirect-by-role", true)
-                .failureUrl("/login?error=true")
-                .permitAll()
-            )
-            .logout(logout -> logout
-                .logoutUrl("/logout")
-                .logoutSuccessUrl("/login")
-                .invalidateHttpSession(true)
-                .deleteCookies("JSESSIONID")
-                .permitAll()
             );
         
         return http.build();

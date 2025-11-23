@@ -1,4 +1,3 @@
-// service/ConsultaService.java
 package com.papeleria.service;
 
 import com.papeleria.model.Producto;
@@ -22,7 +21,6 @@ public class ConsultaService {
         List<Producto> porDetalle = productoRepository.findByDetalleContainingIgnoreCaseAndActivoTrue(query);
         List<Producto> porCodigo = productoRepository.findByCodigoContainingAndActivoTrue(query);
         
-        // Combinar y eliminar duplicados
         porDetalle.addAll(porCodigo.stream()
                 .filter(producto -> porDetalle.stream().noneMatch(p -> p.getId().equals(producto.getId())))
                 .collect(Collectors.toList()));

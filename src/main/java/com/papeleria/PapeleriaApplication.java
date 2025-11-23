@@ -1,4 +1,3 @@
-// PapeleriaApplication.java
 package com.papeleria;
 
 import org.springframework.boot.SpringApplication;

@@ -11,7 +11,7 @@
         <nav class="navbar">
             <div class="logo">📚 Papelería Plus - Vendedor</div>
             <div class="user-info">
-                <span>Bienvenido, <span id="userName"></span> (<span id="userCode"></span>)</span>
+                <span>Bienvenido, <span id="userName">Cargando...</span> (<span id="userCode">Cargando...</span>)</span>
                 <button class="btn btn-logout" onclick="logout()">Cerrar Sesión</button>
             </div>
         </nav>
@@ -26,11 +26,11 @@
                         <h2 class="card-title">Productos Disponibles</h2>
                         <div class="search-box">
                             <input type="text" id="searchProduct" class="form-control" 
-                                   placeholder="Buscar producto...">
+                                   placeholder="Buscar por nombre o código...">
                         </div>
                     </div>
                     <div id="productosList" class="productos-container">
-                        <!-- Los productos se cargarán aquí dinámicamente -->
+                        <div class="text-center">Cargando productos...</div>
                     </div>
                 </div>
 
@@ -38,20 +38,20 @@
                 <div class="card">
                     <div class="card-header">
                         <h2 class="card-title">Pedido Actual</h2>
-                        <button id="limpiarPedido" class="btn btn-secondary">Limpiar</button>
+                        <button id="limpiarPedido" class="btn btn-secondary">Limpiar Pedido</button>
                     </div>
                     
                     <div class="form-group">
-                        <label for="clienteNombre" class="form-label">Nombre del Cliente</label>
+                        <label for="clienteNombre" class="form-label">Nombre del Cliente *</label>
                         <input type="text" id="clienteNombre" class="form-control" 
-                               placeholder="Ingrese el nombre del cliente" required>
+                               placeholder="Ingrese el nombre completo del cliente" required>
                     </div>
 
                     <div id="resumenPedido" class="pedido-container mb-2">
-                        <!-- Los productos del pedido se mostrarán aquí -->
+                        <div class="text-center">No hay productos en el pedido</div>
                     </div>
 
-                    <div class="pedido-total">
+                    <div class="pedido-total card">
                         <h3>Total: <span id="totalPedido">S/ 0.00</span></h3>
                     </div>
 

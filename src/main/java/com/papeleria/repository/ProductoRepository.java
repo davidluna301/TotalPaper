@@ -1,4 +1,3 @@
-// repository/ProductoRepository.java
 package com.papeleria.repository;
 
 import com.papeleria.model.Producto;
@@ -12,4 +11,5 @@ public interface ProductoRepository extends MongoRepository<Producto, String> {
     List<Producto> findByActivoTrue();
     List<Producto> findByDetalleContainingIgnoreCaseAndActivoTrue(String detalle);
     List<Producto> findByCodigoContainingAndActivoTrue(String codigo);
+    List<Producto> findAll();
 }

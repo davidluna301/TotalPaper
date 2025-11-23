@@ -1,44 +1,42 @@
-// auth.js - Actualizado
 document.addEventListener('DOMContentLoaded', function() {
     const loginForm = document.getElementById('loginForm');
     
     if (loginForm) {
         loginForm.addEventListener('submit', handleLogin);
     }
-
     checkExistingAuth();
 });
 
 async function handleLogin(e) {
     e.preventDefault();
     
-    const codigo = document.getElementById('codigo').value;
+    const codigo = document.getElementById('codigo').value.trim();
     const password = document.getElementById('password').value;
     
+    if (!codigo || !password) {
+        Utils.showAlert('Por favor, complete todos los campos', 'error');
+        return;
+    }
+
     try {
-        Utils.showLoading();
-        
         const response = await Utils.makeRequest('/api/gestion/login', {
             method: 'POST',
             body: JSON.stringify({ codigo, password })
         });
 
         Utils.setCurrentUser(response);
+        Utils.showAlert(`Bienvenido ${response.nombre}`, 'success');
         
-        // Redirigir según el rol
-        if (response.rol === 'VENDEDOR') {
-            window.location.href = '/vendedor';
-        } else if (response.rol === 'ADMINISTRADOR') {
-            window.location.href = '/admin';
-        } else {
-            throw new Error('Rol no reconocido: ' + response.rol);
-        }
+        setTimeout(() => {
+            if (response.rol === 'VENDEDOR') {
+                window.location.href = '/vendedor';
+            } else if (response.rol === 'ADMINISTRADOR') {
+                window.location.href = '/admin';
+            }
+        }, 1000);
         
     } catch (error) {
-        Utils.showAlert('Error: ' + error.message, 'error');
-        console.error('Error en login:', error);
-    } finally {
-        Utils.hideLoading();
+        Utils.showAlert('Credenciales incorrectas', 'error');
     }
 }
 
@@ -47,7 +45,6 @@ function checkExistingAuth() {
     const currentPath = window.location.pathname;
     
     if (user) {
-        // Si ya está autenticado y está en login, redirigir
         if (currentPath === '/login' || currentPath === '/') {
             if (user.rol === 'VENDEDOR') {
                 window.location.href = '/vendedor';
@@ -56,7 +53,6 @@ function checkExistingAuth() {
             }
         }
     } else {
-        // Si no está autenticado y no está en login, redirigir a login
         if (currentPath !== '/login' && currentPath !== '/') {
             window.location.href = '/login';
         }
@@ -64,7 +60,7 @@ function checkExistingAuth() {
 }
 
 function logout() {
-    if (confirm('¿Estás seguro de que deseas cerrar sesión?')) {
+    if (confirm('¿Está seguro de que desea cerrar sesión?')) {
         Utils.clearAuth();
         window.location.href = '/login';
     }

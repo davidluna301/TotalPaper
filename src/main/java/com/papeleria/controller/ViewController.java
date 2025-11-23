@@ -1,4 +1,3 @@
-// controller/ViewController.java (actualizado)
 package com.papeleria.controller;
 
 import org.springframework.stereotype.Controller;
@@ -25,11 +24,5 @@ public class ViewController {
     @GetMapping("/admin")
     public String admin() {
         return "admin";
-    }
-
-    @GetMapping("/redirect-by-role")
-    public String redirectByRole() {
-        // Esta redirección será manejada por JavaScript
-        return "redirect:/login";
     }
 }

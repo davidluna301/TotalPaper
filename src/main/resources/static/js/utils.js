@@ -1,28 +1,20 @@
-// utils.js
 class Utils {
-    static showLoading() {
-        // Implementar loading spinner si es necesario
-        console.log('Cargando...');
-    }
-
-    static hideLoading() {
-        // Ocultar loading spinner
-        console.log('Carga completada');
-    }
-
-    static showAlert(message, type = 'info', container = null) {
+    static showAlert(message, type = 'info') {
         const alert = document.createElement('div');
         alert.className = `alert alert-${type}`;
-        alert.textContent = message;
+        alert.innerHTML = `
+            <div class="alert-content">
+                <span>${message}</span>
+                <button class="alert-close" onclick="this.parentElement.parentElement.remove()">×</button>
+            </div>
+        `;
         
-        if (container) {
-            container.insertBefore(alert, container.firstChild);
-        } else {
-            document.body.insertBefore(alert, document.body.firstChild);
-        }
+        document.body.insertBefore(alert, document.body.firstChild);
         
         setTimeout(() => {
-            alert.remove();
+            if (alert.parentElement) {
+                alert.remove();
+            }
         }, 5000);
     }
 
@@ -33,18 +25,15 @@ class Utils {
         }).format(amount);
     }
 
-    static formatDate(date) {
-        return new Date(date).toLocaleDateString('es-PE', {
+    static formatDate(dateString) {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('es-PE', {
             year: 'numeric',
             month: '2-digit',
             day: '2-digit',
             hour: '2-digit',
             minute: '2-digit'
         });
-    }
-
-    static getAuthToken() {
-        return localStorage.getItem('authToken');
     }
 
     static getCurrentUser() {
@@ -58,7 +47,6 @@ class Utils {
 
     static clearAuth() {
         localStorage.removeItem('currentUser');
-        localStorage.removeItem('authToken');
     }
 
     static async makeRequest(url, options = {}) {
@@ -79,7 +67,8 @@ class Utils {
             const response = await fetch(url, finalOptions);
             
             if (!response.ok) {
-                throw new Error(`Error ${response.status}: ${response.statusText}`);
+                const errorText = await response.text();
+                throw new Error(errorText || `Error ${response.status}`);
             }
             
             return await response.json();
@@ -91,7 +80,6 @@ class Utils {
 
     static confirmAction(message) {
         return new Promise((resolve) => {
-            // Implementación simple de confirmación
             const confirmed = confirm(message);
             resolve(confirmed);
         });

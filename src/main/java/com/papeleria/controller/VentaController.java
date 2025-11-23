@@ -1,4 +1,3 @@
-// controller/VentaController.java
 package com.papeleria.controller;
 
 import com.papeleria.dto.PedidoDTO;
@@ -19,27 +18,18 @@ public class VentaController {
     private VentaService ventaService;
 
     @PostMapping("/pedido")
-    public Pedido crearPedido(@RequestBody PedidoDTO pedidoDTO, 
+    public ResponseEntity<?> crearPedido(@RequestBody PedidoDTO pedidoDTO, 
                              @RequestHeader("X-Vendedor-Codigo") String vendedorCodigo) {
-        
-        // Convertir DTO a entidad
-        Pedido pedido = new Pedido();
-        pedido.setClienteNombre(pedidoDTO.getClienteNombre());
-        pedido.setVendedorCodigo(vendedorCodigo);
-        
-        // Convertir productos del DTO a la entidad
-        List<Pedido.ProductoPedido> productos = pedidoDTO.getProductos().stream()
-                .map(productoDTO -> new Pedido.ProductoPedido(
-                    productoDTO.getCodigo(),
-                    productoDTO.getDetalle(),
-                    productoDTO.getPrecio(),
-                    productoDTO.getCantidad()
-                ))
-                .toList();
-        
-        pedido.setProductos(productos);
-        
-        return ventaService.registrarPedido(pedido);
+        try {
+            Pedido pedido = new Pedido();
+            pedido.setClienteNombre(pedidoDTO.getClienteNombre());
+            pedido.setVendedorCodigo(vendedorCodigo);
+            
+            Pedido pedidoCreado = ventaService.registrarPedido(pedido, pedidoDTO.getProductos());
+            return ResponseEntity.ok(pedidoCreado);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 
     @GetMapping("/pedidos")

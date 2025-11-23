@@ -1,4 +1,3 @@
-// controller/ConsultaController.java
 package com.papeleria.controller;
 
 import com.papeleria.model.Producto;

@@ -1,4 +1,3 @@
-// admin.js
 class AdminApp {
     constructor() {
         this.currentUser = Utils.getCurrentUser();
@@ -20,7 +19,6 @@ class AdminApp {
     }
 
     setupEventListeners() {
-        // Navegación entre secciones
         document.querySelectorAll('.nav-link').forEach(link => {
             link.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -28,7 +26,6 @@ class AdminApp {
             });
         });
 
-        // Formularios
         document.getElementById('formCrearUsuario').addEventListener('submit', (e) => {
             e.preventDefault();
             this.crearUsuario();
@@ -39,7 +36,6 @@ class AdminApp {
             this.crearProducto();
         });
 
-        // Exportación
         document.getElementById('btnExportar').addEventListener('click', () => {
             this.exportarPedidos();
         });
@@ -47,35 +43,34 @@ class AdminApp {
 
     async cargarDatosIniciales() {
         try {
-            Utils.showLoading();
-            
             await Promise.all([
                 this.cargarUsuarios(),
                 this.cargarProductos(),
                 this.cargarPedidos()
             ]);
-
+            Utils.showAlert('Datos cargados correctamente', 'success');
         } catch (error) {
-            Utils.showAlert('Error al cargar los datos', 'error');
-            console.error('Error:', error);
-        } finally {
-            Utils.hideLoading();
+            Utils.showAlert('Error al cargar los datos: ' + error.message, 'error');
         }
     }
 
     async cargarUsuarios() {
-        // En una implementación real, aquí harías una petición para obtener los usuarios
-        // Por ahora, simulamos la carga
-        this.usuarios = [];
-        this.mostrarUsuarios();
+        try {
+            this.usuarios = await Utils.makeRequest('/api/gestion/usuarios');
+            this.mostrarUsuarios();
+        } catch (error) {
+            console.error('Error cargando usuarios:', error);
+            throw error;
+        }
     }
 
     async cargarProductos() {
         try {
-            this.productos = await Utils.makeRequest('/api/consulta/productos');
+            this.productos = await Utils.makeRequest('/api/gestion/productos');
             this.mostrarProductos();
         } catch (error) {
             console.error('Error cargando productos:', error);
+            throw error;
         }
     }
 
@@ -85,26 +80,22 @@ class AdminApp {
             this.mostrarPedidos();
         } catch (error) {
             console.error('Error cargando pedidos:', error);
+            throw error;
         }
     }
 
     mostrarSeccion(sectionId) {
-        // Ocultar todas las secciones
         document.querySelectorAll('.section').forEach(section => {
             section.classList.add('hidden');
         });
-
-        // Mostrar la sección seleccionada
         document.getElementById(sectionId).classList.remove('hidden');
 
-        // Actualizar navegación activa
         document.querySelectorAll('.nav-link').forEach(link => {
             link.classList.remove('active');
         });
         document.querySelector(`[data-section="${sectionId}"]`).classList.add('active');
     }
 
-    // Gestión de Usuarios
     async crearUsuario() {
         const formData = new FormData(document.getElementById('formCrearUsuario'));
         const usuarioDTO = {
@@ -114,32 +105,33 @@ class AdminApp {
             rol: 'VENDEDOR'
         };
 
+        if (!usuarioDTO.codigo || !usuarioDTO.nombre || !usuarioDTO.password) {
+            Utils.showAlert('Por favor, complete todos los campos', 'error');
+            return;
+        }
+
         try {
-            Utils.showLoading();
-            
-            const usuarioCreado = await Utils.makeRequest('/api/gestion/usuario', {
+            await Utils.makeRequest('/api/gestion/usuario', {
                 method: 'POST',
                 body: JSON.stringify(usuarioDTO)
             });
 
-            Utils.showAlert('Usuario creado exitosamente', 'success');
+            Utils.showAlert('✅ Usuario creado exitosamente', 'success');
             document.getElementById('formCrearUsuario').reset();
-            
-            // Recargar lista de usuarios
             await this.cargarUsuarios();
 
         } catch (error) {
-            Utils.showAlert('Error al crear usuario: ' + error.message, 'error');
-        } finally {
-            Utils.hideLoading();
+            Utils.showAlert('❌ Error al crear usuario: ' + error.message, 'error');
         }
     }
 
     async eliminarUsuario(codigo) {
-        const confirmed = await Utils.confirmAction(
-            `¿Está seguro de eliminar al usuario ${codigo}? Esta acción no se puede deshacer.`
-        );
+        if (codigo === 'ADMIN001') {
+            Utils.showAlert('No se puede eliminar el administrador principal', 'error');
+            return;
+        }
 
+        const confirmed = await Utils.confirmAction(`¿Está seguro de eliminar al usuario ${codigo}?`);
         if (!confirmed) return;
 
         try {
@@ -147,21 +139,24 @@ class AdminApp {
                 method: 'DELETE'
             });
 
-            Utils.showAlert('Usuario eliminado exitosamente', 'success');
+            Utils.showAlert('✅ Usuario eliminado exitosamente', 'success');
             await this.cargarUsuarios();
 
         } catch (error) {
-            Utils.showAlert('Error al eliminar usuario: ' + error.message, 'error');
+            Utils.showAlert('❌ Error al eliminar usuario: ' + error.message, 'error');
         }
     }
 
     mostrarUsuarios() {
         const container = document.getElementById('usuariosList');
-        container.innerHTML = '';
+        
+        if (this.usuarios.length === 0) {
+            container.innerHTML = '<tr><td colspan="4" class="text-center">No hay usuarios registrados</td></tr>';
+            return;
+        }
 
-        this.usuarios.forEach(usuario => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
+        container.innerHTML = this.usuarios.map(usuario => `
+            <tr>
                 <td>${usuario.codigo}</td>
                 <td>${usuario.nombre}</td>
                 <td>${usuario.rol}</td>
@@ -169,15 +164,13 @@ class AdminApp {
                     <button class="btn btn-danger btn-sm" 
                             onclick="adminApp.eliminarUsuario('${usuario.codigo}')"
                             ${usuario.codigo === 'ADMIN001' ? 'disabled' : ''}>
-                        Eliminar
+                        🗑️ Eliminar
                     </button>
                 </td>
-            `;
-            container.appendChild(row);
-        });
+            </tr>
+        `).join('');
     }
 
-    // Gestión de Productos
     async crearProducto() {
         const formData = new FormData(document.getElementById('formCrearProducto'));
         const productoDTO = {
@@ -186,31 +179,33 @@ class AdminApp {
             precio: parseFloat(formData.get('precio'))
         };
 
+        if (!productoDTO.codigo || !productoDTO.detalle || !productoDTO.precio) {
+            Utils.showAlert('Por favor, complete todos los campos', 'error');
+            return;
+        }
+
+        if (productoDTO.precio <= 0) {
+            Utils.showAlert('El precio debe ser mayor a 0', 'error');
+            return;
+        }
+
         try {
-            Utils.showLoading();
-            
-            const productoCreado = await Utils.makeRequest('/api/gestion/producto', {
+            await Utils.makeRequest('/api/gestion/producto', {
                 method: 'POST',
                 body: JSON.stringify(productoDTO)
             });
 
-            Utils.showAlert('Producto creado exitosamente', 'success');
+            Utils.showAlert('✅ Producto creado exitosamente', 'success');
             document.getElementById('formCrearProducto').reset();
-            
             await this.cargarProductos();
 
         } catch (error) {
-            Utils.showAlert('Error al crear producto: ' + error.message, 'error');
-        } finally {
-            Utils.hideLoading();
+            Utils.showAlert('❌ Error al crear producto: ' + error.message, 'error');
         }
     }
 
     async eliminarProducto(codigo) {
-        const confirmed = await Utils.confirmAction(
-            `¿Está seguro de eliminar el producto ${codigo}?`
-        );
-
+        const confirmed = await Utils.confirmAction(`¿Está seguro de eliminar el producto ${codigo}?`);
         if (!confirmed) return;
 
         try {
@@ -218,64 +213,71 @@ class AdminApp {
                 method: 'DELETE'
             });
 
-            Utils.showAlert('Producto eliminado exitosamente', 'success');
+            Utils.showAlert('✅ Producto eliminado exitosamente', 'success');
             await this.cargarProductos();
 
         } catch (error) {
-            Utils.showAlert('Error al eliminar producto: ' + error.message, 'error');
+            Utils.showAlert('❌ Error al eliminar producto: ' + error.message, 'error');
         }
     }
 
     mostrarProductos() {
         const container = document.getElementById('productosList');
-        container.innerHTML = '';
+        
+        if (this.productos.length === 0) {
+            container.innerHTML = '<tr><td colspan="5" class="text-center">No hay productos registrados</td></tr>';
+            return;
+        }
 
-        this.productos.forEach(producto => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
+        container.innerHTML = this.productos.map(producto => `
+            <tr>
                 <td>${producto.codigo}</td>
                 <td>${producto.detalle}</td>
                 <td>${Utils.formatCurrency(producto.precio)}</td>
-                <td>${producto.activo ? 'Activo' : 'Inactivo'}</td>
+                <td><span class="badge ${producto.activo ? 'badge-success' : 'badge-danger'}">${producto.activo ? 'Activo' : 'Inactivo'}</span></td>
                 <td>
                     <button class="btn btn-danger btn-sm" 
                             onclick="adminApp.eliminarProducto('${producto.codigo}')">
-                        Eliminar
+                        🗑️ Eliminar
                     </button>
                 </td>
-            `;
-            container.appendChild(row);
-        });
+            </tr>
+        `).join('');
     }
 
-    // Gestión de Pedidos
     mostrarPedidos() {
         const container = document.getElementById('pedidosList');
-        container.innerHTML = '';
+        
+        if (this.pedidos.length === 0) {
+            container.innerHTML = '<tr><td colspan="7" class="text-center">No hay pedidos registrados</td></tr>';
+            return;
+        }
 
-        this.pedidos.forEach(pedido => {
+        container.innerHTML = this.pedidos.map(pedido => {
             const total = pedido.productos.reduce((sum, item) => 
                 sum + (item.precio * item.cantidad), 0
             );
 
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${pedido.id}</td>
-                <td>${pedido.clienteNombre}</td>
-                <td>${pedido.vendedorCodigo}</td>
-                <td>${Utils.formatDate(pedido.fecha)}</td>
-                <td>${pedido.estado}</td>
-                <td>${Utils.formatCurrency(total)}</td>
-                <td>${pedido.productos.length} productos</td>
+            return `
+                <tr>
+                    <td>${pedido.id.substring(0, 8)}...</td>
+                    <td>${pedido.clienteNombre}</td>
+                    <td>${pedido.vendedorCodigo}</td>
+                    <td>${Utils.formatDate(pedido.fecha)}</td>
+                    <td><span class="badge badge-info">${pedido.estado}</span></td>
+                    <td>${Utils.formatCurrency(total)}</td>
+                    <td>
+                        <small>${pedido.productos.map(p => 
+                            `${p.detalle} (x${p.cantidad})`
+                        ).join(', ')}</small>
+                    </td>
+                </tr>
             `;
-            container.appendChild(row);
-        });
+        }).join('');
     }
 
     async exportarPedidos() {
         try {
-            Utils.showLoading();
-            
             const response = await fetch('/api/venta/exportar/xlsx');
             
             if (!response.ok) {
@@ -286,29 +288,24 @@ class AdminApp {
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'pedidos.xlsx';
+            a.download = 'pedidos_papeleria.xlsx';
             document.body.appendChild(a);
             a.click();
             window.URL.revokeObjectURL(url);
             document.body.removeChild(a);
 
-            Utils.showAlert('Pedidos exportados exitosamente', 'success');
+            Utils.showAlert('✅ Pedidos exportados exitosamente a Excel', 'success');
 
         } catch (error) {
-            Utils.showAlert('Error al exportar pedidos: ' + error.message, 'error');
-        } finally {
-            Utils.hideLoading();
+            Utils.showAlert('❌ Error al exportar pedidos: ' + error.message, 'error');
         }
     }
 
     actualizarUI() {
         document.getElementById('adminName').textContent = this.currentUser.nombre;
         document.getElementById('adminCode').textContent = this.currentUser.codigo;
-        
-        // Mostrar la sección de pedidos por defecto
         this.mostrarSeccion('gestion-pedidos');
     }
 }
 
-// Instancia global para acceso desde HTML
 const adminApp = new AdminApp();

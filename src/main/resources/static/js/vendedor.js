@@ -1,4 +1,3 @@
-// vendedor.js
 class VendedorApp {
     constructor() {
         this.productos = [];
@@ -19,17 +18,14 @@ class VendedorApp {
     }
 
     setupEventListeners() {
-        // Búsqueda de productos
         document.getElementById('searchProduct').addEventListener('input', (e) => {
             this.buscarProductos(e.target.value);
         });
 
-        // Confirmar pedido
         document.getElementById('confirmarPedido').addEventListener('click', () => {
             this.confirmarPedido();
         });
 
-        // Limpiar pedido
         document.getElementById('limpiarPedido').addEventListener('click', () => {
             this.limpiarPedido();
         });
@@ -37,14 +33,10 @@ class VendedorApp {
 
     async cargarProductos() {
         try {
-            Utils.showLoading();
             this.productos = await Utils.makeRequest('/api/consulta/productos');
             this.mostrarProductos(this.productos);
         } catch (error) {
             Utils.showAlert('Error al cargar los productos', 'error');
-            console.error('Error:', error);
-        } finally {
-            Utils.hideLoading();
         }
     }
 
@@ -79,16 +71,16 @@ class VendedorApp {
 
     crearElementoProducto(producto) {
         const div = document.createElement('div');
-        div.className = 'card';
+        div.className = 'card producto-card';
         div.innerHTML = `
             <div class="producto-info">
-                <h4>${producto.detalle}</h4>
+                <h4 class="producto-nombre">${producto.detalle}</h4>
                 <div class="producto-details">
                     <span class="producto-codigo">Código: ${producto.codigo}</span>
                     <span class="producto-precio">${Utils.formatCurrency(producto.precio)}</span>
                 </div>
                 <button class="btn btn-primary btn-anadir" data-codigo="${producto.codigo}">
-                    Añadir al Pedido
+                    ➕ Añadir al Pedido
                 </button>
             </div>
         `;
@@ -115,13 +107,14 @@ class VendedorApp {
         }
 
         this.actualizarResumenPedido();
-        Utils.showAlert('Producto añadido al pedido', 'success');
+        Utils.showAlert(`${producto.detalle} añadido al pedido`, 'success');
     }
 
     eliminarDelPedido(codigo) {
+        const producto = this.pedidoActual.find(item => item.codigo === codigo);
         this.pedidoActual = this.pedidoActual.filter(item => item.codigo !== codigo);
         this.actualizarResumenPedido();
-        Utils.showAlert('Producto eliminado del pedido', 'info');
+        Utils.showAlert(`${producto.detalle} eliminado del pedido`, 'info');
     }
 
     actualizarResumenPedido() {
@@ -145,19 +138,20 @@ class VendedorApp {
             total += subtotal;
 
             const itemElement = document.createElement('div');
-            itemElement.className = 'card mb-1';
+            itemElement.className = 'card mb-1 pedido-item-card';
             itemElement.innerHTML = `
                 <div class="pedido-item">
                     <div class="item-header">
-                        <h5>${item.detalle}</h5>
+                        <h5 class="item-nombre">${item.detalle}</h5>
                         <button class="btn btn-danger btn-eliminar" data-codigo="${item.codigo}">
-                            ×
+                            🗑️
                         </button>
                     </div>
                     <div class="item-details">
-                        <span>Código: ${item.codigo}</span>
-                        <span>Precio: ${Utils.formatCurrency(item.precio)}</span>
-                        <span>Cantidad: 
+                        <span><strong>Código:</strong> ${item.codigo}</span>
+                        <span><strong>Precio:</strong> ${Utils.formatCurrency(item.precio)}</span>
+                        <span>
+                            <strong>Cantidad:</strong> 
                             <input type="number" min="1" value="${item.cantidad}" 
                                    class="cantidad-input" data-codigo="${item.codigo}" 
                                    style="width: 60px; margin: 0 0.5rem;">
@@ -167,7 +161,6 @@ class VendedorApp {
                 </div>
             `;
 
-            // Event listeners para el item
             itemElement.querySelector('.btn-eliminar').addEventListener('click', () => {
                 this.eliminarDelPedido(item.codigo);
             });
@@ -177,6 +170,8 @@ class VendedorApp {
                 if (nuevaCantidad > 0) {
                     item.cantidad = nuevaCantidad;
                     this.actualizarResumenPedido();
+                } else {
+                    e.target.value = item.cantidad;
                 }
             });
 
@@ -188,56 +183,42 @@ class VendedorApp {
     }
 
     async confirmarPedido() {
-    const clienteNombre = document.getElementById('clienteNombre').value.trim();
-    
-    if (!clienteNombre) {
-        Utils.showAlert('Por favor, ingrese el nombre del cliente', 'error');
-        return;
-    }
-
-    if (this.pedidoActual.length === 0) {
-        Utils.showAlert('El pedido debe contener al menos un producto', 'error');
-        return;
-    }
-
-    const confirmed = await Utils.confirmAction('¿Está seguro de confirmar este pedido?');
-    if (!confirmed) return;
-
-    try {
-        Utils.showLoading();
-
-        // Preparar los productos con todos los datos necesarios
-        const productosPedido = this.pedidoActual.map(item => ({
-            codigo: item.codigo,
-            detalle: item.detalle,
-            precio: item.precio,
-            cantidad: item.cantidad
-        }));
-
-        const pedidoData = {
-            clienteNombre: clienteNombre,
-            productos: productosPedido
-        };
-
-        const pedidoCreado = await Utils.makeRequest('/api/venta/pedido', {
-            method: 'POST',
-            body: JSON.stringify(pedidoData)
-        });
-
-        Utils.showAlert('Pedido creado exitosamente', 'success');
+        const clienteNombre = document.getElementById('clienteNombre').value.trim();
         
-        // Limpiar el pedido actual
-        this.limpiarPedido();
-        
-        console.log('Pedido creado:', pedidoCreado);
+        if (!clienteNombre) {
+            Utils.showAlert('Por favor, ingrese el nombre del cliente', 'error');
+            return;
+        }
 
-    } catch (error) {
-        Utils.showAlert('Error al crear el pedido: ' + error.message, 'error');
-        console.error('Error:', error);
-    } finally {
-        Utils.hideLoading();
+        if (this.pedidoActual.length === 0) {
+            Utils.showAlert('El pedido debe contener al menos un producto', 'error');
+            return;
+        }
+
+        const confirmed = await Utils.confirmAction('¿Confirmar la creación de este pedido?');
+        if (!confirmed) return;
+
+        try {
+            const pedidoDTO = {
+                clienteNombre: clienteNombre,
+                productos: this.pedidoActual.map(item => ({
+                    codigo: item.codigo,
+                    cantidad: item.cantidad
+                }))
+            };
+
+            await Utils.makeRequest('/api/venta/pedido', {
+                method: 'POST',
+                body: JSON.stringify(pedidoDTO)
+            });
+
+            Utils.showAlert('✅ Pedido creado exitosamente', 'success');
+            this.limpiarPedido();
+
+        } catch (error) {
+            Utils.showAlert('❌ Error al crear el pedido: ' + error.message, 'error');
+        }
     }
-}
 
     limpiarPedido() {
         this.pedidoActual = [];
@@ -247,7 +228,6 @@ class VendedorApp {
     }
 
     actualizarUI() {
-        // Actualizar información del usuario en la UI
         document.getElementById('userName').textContent = this.currentUser.nombre;
         document.getElementById('userCode').textContent = this.currentUser.codigo;
     }
